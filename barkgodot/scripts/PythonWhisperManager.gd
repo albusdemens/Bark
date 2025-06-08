@@ -1,133 +1,78 @@
 extends Node
-# AutoLoad singleton - Alternative simple approach
 
 signal command_received(text: String)
 
-var is_listening: bool = false
 var camera: Camera3D
+var is_recording_in_progress: bool = false # Add a flag to prevent multiple simultaneous recordings
 
 func _ready():
 	print("🐍 Python Whisper Manager ready!")
 	print("Commands: SPACE = record voice, T = test command")
 
 func _input(event):
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_SPACE:
-			start_python_whisper()
-		elif event.keycode == KEY_T:
+	if event is InputEventKey:
+		# Check if the key was just pressed down and is not a repeat (echo) press
+		if event.keycode == KEY_SPACE and event.is_pressed() and not event.is_echo():
+			record_audio()
+		elif event.keycode == KEY_T and event.is_pressed() and not event.is_echo():
 			test_command()
 
-func start_python_whisper():
-	if is_listening:
+func record_audio():
+	# Prevent starting a new recording if one is already in progress
+	if is_recording_in_progress:
+		print("⚠️ Recording already in progress. Please wait.")
+		return
+
+	is_recording_in_progress = true # Set the flag to true
+	print("🎤 Recording for 5 seconds...")
+	
+	# Create a new HTTP request with longer timeout
+	var http = HTTPRequest.new()
+	add_child(http)
+	http.timeout = 15.0  # 15 seconds timeout (5 for recording + processing time)
+	
+	# Make the request
+	var error = http.request("http://localhost:5555/record/5")
+	
+	if error != OK:
+		print("❌ Request failed: ", error)
+		http.queue_free()
+		is_recording_in_progress = false # Reset the flag on error
 		return
 	
-	print("🎤 Recording audio with Python Whisper...")
-	is_listening = true
+	# Wait for response
+	var response = await http.request_completed
 	
-	# Record audio to temporary file
-	record_audio_to_file()
-
-func record_audio_to_file():
-	print("🎤 Recording audio with Python script...")
+	# Parse response
+	var response_code = response[1]
+	var body = response[3]
 	
-	# Call Python audio recording script
-	var output = []
-	var record_script_path = ProjectSettings.globalize_path("res://record_audio.py")
-	var duration = "5"  # 5 seconds (give more time to speak clearly)
-	var audio_filename = "temp_audio.wav"
+	print("📡 Got response, code: ", response_code)
 	
-	print("🐍 Using Python: /home/albus/miniforge3/envs/bark/bin/python")
-	print("📝 Recording script: ", record_script_path)
-	print("⏱️ Duration: ", duration, " seconds")
-	
-	# FIXED: Use bark environment instead of system python3
-	var exit_code = OS.execute("/home/albus/miniforge3/envs/bark/bin/python", [record_script_path, duration, audio_filename], output)
-	
-	print("🔍 Recording exit code: ", exit_code)
-	print("📤 Recording output size: ", output.size())
-	if output.size() > 0:
-		print("📤 Recording output: ", output[0])
-	
-	if exit_code == 0 and output.size() > 0:
-		var json = JSON.new()
-		var parse_result = json.parse(output[0])
+	if response_code == 200:
+		var body_string = body.get_string_from_utf8()
+		print("📤 Server said: ", body_string)
 		
-		print("🔍 JSON parse result: ", parse_result)
+		var json = JSON.new()
+		var parse_result = json.parse(body_string)
 		
 		if parse_result == OK:
-			var result = json.data
-			print("🔍 Parsed result: ", result)
-			if result.get("success", false):
-				print("✅ Audio recorded successfully")
-				# Now send to Whisper for transcription
-				call_whisper_on_recorded_audio(audio_filename)
+			var data = json.data
+			if data.has("success") and data.success:
+				var text = data.get("text", "")
+				print("🗣️ You said: '", text, "'")
+				command_received.emit(text)
+				process_command(text)
 			else:
-				print("❌ Recording failed: ", result.get("error", "Unknown error"))
-				simulate_fallback()
+				print("❌ Error: ", data.get("error", "Unknown"))
 		else:
-			print("❌ Failed to parse recording response")
-			simulate_fallback()
+			print("❌ JSON parse failed")
 	else:
-		print("❌ Audio recording script failed (exit code: ", exit_code, ")")
-		if output.size() > 0:
-			print("Recording output: ", output[0])
-		simulate_fallback()
-
-func call_whisper_on_recorded_audio(audio_filename: String):
-	print("📁 Sending recorded audio to Python Whisper...")
+		print("❌ HTTP error: ", response_code)
 	
-	# Call Python Whisper script
-	var output = []
-	var whisper_script_path = ProjectSettings.globalize_path("res://whisper_service.py")
-	var audio_path = ProjectSettings.globalize_path("res://" + audio_filename)
-	
-	print("🐍 Using Python: /home/albus/miniforge3/envs/bark/bin/python")
-	print("📝 Whisper script: ", whisper_script_path)
-	print("🎵 Audio file: ", audio_path)
-	
-	# FIXED: Use bark environment instead of system python3
-	var exit_code = OS.execute("/home/albus/miniforge3/envs/bark/bin/python", [whisper_script_path, audio_path], output)
-	
-	print("🔍 Whisper exit code: ", exit_code)
-	print("📤 Whisper output size: ", output.size())
-	if output.size() > 0:
-		print("📤 Whisper output: ", output[0])
-	
-	if exit_code == 0 and output.size() > 0:
-		var json = JSON.new()
-		var parse_result = json.parse(output[0])
-		
-		print("🔍 Whisper JSON parse result: ", parse_result)
-		
-		if parse_result == OK:
-			var result = json.data
-			print("🔍 Whisper parsed result: ", result)
-			if result.get("success", false):
-				var transcribed_text = result.get("text", "")
-				print("🗣️ Python Whisper heard: '", transcribed_text, "'")
-				command_received.emit(transcribed_text)
-				process_command(transcribed_text)
-			else:
-				print("❌ Whisper error: ", result.get("error", "Unknown error"))
-				simulate_fallback()
-		else:
-			print("❌ Failed to parse Whisper response")
-			simulate_fallback()
-	else:
-		print("❌ Python Whisper failed (exit code: ", exit_code, "), using fallback")
-		if output.size() > 0:
-			print("Whisper output: ", output[0])
-		simulate_fallback()
-	
-	is_listening = false
-
-func simulate_fallback():
-	# Fallback when Python/Whisper fails
-	var test_commands = ["come here", "sit down", "stay there", "go over there"]
-	var command = test_commands[randi() % test_commands.size()]
-	print("🤖 FALLBACK ACTIVATED - Whisper failed, using random command: '", command, "'")
-	command_received.emit(command)
-	process_command(command)
+	# Clean up
+	http.queue_free()
+	is_recording_in_progress = false # Reset the flag after completion
 
 func test_command():
 	var command = "come here"
@@ -149,43 +94,18 @@ func process_command(text: String):
 	if "come" in text or "here" in text:
 		print("📍 Calling dog to come here")
 		dog.come_here(player_pos)
-	elif "follow" in text or "follow me" in text:
-		print("👥 Dog will follow you")
-		dog.follow()
-	elif "go" in text or "there" in text:
-		print("👉 Telling dog to go somewhere")
-		var random_pos = player_pos + Vector3(randf_range(-5, 5), 0, randf_range(-5, 5))
-		dog.move_to_position(random_pos)
-	
-	# Position commands
 	elif "sit" in text:
 		print("🐕 Telling dog to sit")
 		dog.sit()
 	elif "stay" in text or "wait" in text:
 		print("✋ Telling dog to stay")
 		dog.stay()
-	elif "release" in text or "free" in text or "okay" in text:
-		print("🆓 Releasing dog")
-		dog.release()
-	
-	# Activity commands
-	elif "play" in text or "playful" in text:
-		print("🎾 Time to play!")
-		dog.play()
-	elif "good" in text or "boy" in text or "girl" in text:
-		print("🎉 Good dog!")
-		dog.good_boy()
-	
-	# Status commands
-	elif "status" in text or "how are you" in text:
-		if dog.has_method("get_status"):
-			print("📊 Dog status: ", dog.get_status())
-		else:
-			print("🐕 Dog is doing well!")
-	
+	elif "go" in text or "there" in text:
+		print("👉 Telling dog to go somewhere")
+		var random_pos = player_pos + Vector3(randf_range(-5, 5), 0, randf_range(-5, 5))
+		dog.move_to_position(random_pos)
 	else:
 		print("❓ Unknown command: ", text)
-		print("💡 Try: come here, sit, stay, follow me, play, good boy")
 
 func get_player_position() -> Vector3:
 	if not camera:
@@ -197,4 +117,4 @@ func get_player_position() -> Vector3:
 		forward = forward.normalized()
 		return camera.global_position + forward * 5
 	
-	return Vector3.ZERO                     
+	return Vector3.ZERO
