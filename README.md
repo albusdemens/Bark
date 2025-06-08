@@ -7,6 +7,11 @@ Core components:
 - Engine: Godot 4.4
 - STT: OpenAI Whisper
 
+## How to run the game
+
+1. Set the voice server `conda activate bark && python audio_server.py` 🎙️
+2. Start the game as usual using the Godot editor 
+
 ## Map input and output devices
 
 - `test_audio_devices.py` to list the available devices
