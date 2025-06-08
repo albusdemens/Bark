@@ -33,17 +33,30 @@ func record_audio_to_file():
 	# Call Python audio recording script
 	var output = []
 	var record_script_path = ProjectSettings.globalize_path("res://record_audio.py")
-	var duration = "3"  # 3 seconds (arecord needs integer)
+	var duration = "5"  # 5 seconds (give more time to speak clearly)
 	var audio_filename = "temp_audio.wav"
 	
-	var exit_code = OS.execute("python3", [record_script_path, duration, audio_filename], output)
+	print("🐍 Using Python: /home/albus/miniforge3/envs/bark/bin/python")
+	print("📝 Recording script: ", record_script_path)
+	print("⏱️ Duration: ", duration, " seconds")
+	
+	# FIXED: Use bark environment instead of system python3
+	var exit_code = OS.execute("/home/albus/miniforge3/envs/bark/bin/python", [record_script_path, duration, audio_filename], output)
+	
+	print("🔍 Recording exit code: ", exit_code)
+	print("📤 Recording output size: ", output.size())
+	if output.size() > 0:
+		print("📤 Recording output: ", output[0])
 	
 	if exit_code == 0 and output.size() > 0:
 		var json = JSON.new()
 		var parse_result = json.parse(output[0])
 		
+		print("🔍 JSON parse result: ", parse_result)
+		
 		if parse_result == OK:
 			var result = json.data
+			print("🔍 Parsed result: ", result)
 			if result.get("success", false):
 				print("✅ Audio recorded successfully")
 				# Now send to Whisper for transcription
@@ -68,14 +81,27 @@ func call_whisper_on_recorded_audio(audio_filename: String):
 	var whisper_script_path = ProjectSettings.globalize_path("res://whisper_service.py")
 	var audio_path = ProjectSettings.globalize_path("res://" + audio_filename)
 	
-	var exit_code = OS.execute("python3", [whisper_script_path, audio_path], output)
+	print("🐍 Using Python: /home/albus/miniforge3/envs/bark/bin/python")
+	print("📝 Whisper script: ", whisper_script_path)
+	print("🎵 Audio file: ", audio_path)
+	
+	# FIXED: Use bark environment instead of system python3
+	var exit_code = OS.execute("/home/albus/miniforge3/envs/bark/bin/python", [whisper_script_path, audio_path], output)
+	
+	print("🔍 Whisper exit code: ", exit_code)
+	print("📤 Whisper output size: ", output.size())
+	if output.size() > 0:
+		print("📤 Whisper output: ", output[0])
 	
 	if exit_code == 0 and output.size() > 0:
 		var json = JSON.new()
 		var parse_result = json.parse(output[0])
 		
+		print("🔍 Whisper JSON parse result: ", parse_result)
+		
 		if parse_result == OK:
 			var result = json.data
+			print("🔍 Whisper parsed result: ", result)
 			if result.get("success", false):
 				var transcribed_text = result.get("text", "")
 				print("🗣️ Python Whisper heard: '", transcribed_text, "'")
@@ -99,7 +125,7 @@ func simulate_fallback():
 	# Fallback when Python/Whisper fails
 	var test_commands = ["come here", "sit down", "stay there", "go over there"]
 	var command = test_commands[randi() % test_commands.size()]
-	print("🤖 Fallback command: '", command, "'")
+	print("🤖 FALLBACK ACTIVATED - Whisper failed, using random command: '", command, "'")
 	command_received.emit(command)
 	process_command(command)
 
@@ -171,4 +197,4 @@ func get_player_position() -> Vector3:
 		forward = forward.normalized()
 		return camera.global_position + forward * 5
 	
-	return Vector3.ZERO
+	return Vector3.ZERO                     
