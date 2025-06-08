@@ -24,15 +24,15 @@ func record_audio():
 		return
 
 	is_recording_in_progress = true # Set the flag to true
-	print("🎤 Recording for 5 seconds...")
+	print("🎤 Recording for 2 seconds...")
 	
 	# Create a new HTTP request with longer timeout
 	var http = HTTPRequest.new()
 	add_child(http)
-	http.timeout = 15.0  # 15 seconds timeout (5 for recording + processing time)
+	http.timeout = 12.0  # 12 seconds timeout (2 for recording + processing time)
 	
 	# Make the request
-	var error = http.request("http://localhost:5555/record/5")
+	var error = http.request("http://localhost:5555/record/2")
 	
 	if error != OK:
 		print("❌ Request failed: ", error)

@@ -81,7 +81,7 @@ if __name__ == '__main__':
     
     print("🎤 Audio server running on http://localhost:5555")
     print("📍 Test with: curl http://localhost:5555/health")
-    print("🎙️ Record with: curl http://localhost:5555/record/5")
+    print("🎙️ Record with: curl http://localhost:5555/record/2")
     
     try:
         server.serve_forever()
