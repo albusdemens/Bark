@@ -7,6 +7,10 @@ Core components:
 - Engine: Godot 4.4
 - STT: OpenAI Whisper
 
+## Structure overview
+
+![Bark structure overview](Images/Overview_Bark.png)
+
 ## How to run the game
 
 1. Set the voice server `conda activate bark && python audio_server.py` 🎙️
