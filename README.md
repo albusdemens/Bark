@@ -9,7 +9,7 @@ Core components:
 
 ## Structure overview
 
-![Bark structure overview](Images/OverviewBark.png)
+![Bark structure overview](Images&3D/OverviewBark.png)
 
 ## How to run the game
 
