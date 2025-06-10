@@ -91,7 +91,7 @@ func process_command(text: String):
 	var player_pos = get_player_position()
 	
 	# Movement commands. Commands are divided in three tiers:
-	# 1. Come here, stay, sit, go
+	# 1. Come here, stay, sit, go 
 	# 2. Drop it, find it, get it, leave it
 	# 3. Up, down, inside
 	if "come" in text or "here" in text:
@@ -107,7 +107,7 @@ func process_command(text: String):
 		print("👉 Telling dog to go somewhere")
 		var random_pos = player_pos + Vector3(randf_range(-5, 5), 0, randf_range(-5, 5))
 		dog.move_to_position(random_pos)
-	else: 
+	else:
 		print("❓ Unknown command: ", text)
 
 func get_player_position() -> Vector3:
