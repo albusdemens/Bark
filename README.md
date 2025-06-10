@@ -20,3 +20,11 @@ Core components:
 
 - `test_audio_devices.py` to list the available devices
 - `test_record_devices.py` to check that we can record audio
+
+## Commands
+
+The commands we can give to the dog are grouped in three tiers, with growing complexity:
+
+- **Basic commands**: `come here`, `stay`, `sit`, `go` ✅
+- **Intermediate commands**: `drop it`, `find it`, `get it`, `leave it`
+- **Advanced commands**: `up`, `down`, `inside`
