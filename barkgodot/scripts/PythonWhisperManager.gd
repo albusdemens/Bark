@@ -107,7 +107,7 @@ func process_command(text: String):
 		print("👉 Telling dog to go somewhere")
 		var random_pos = player_pos + Vector3(randf_range(-5, 5), 0, randf_range(-5, 5))
 		dog.move_to_position(random_pos)
-	else:
+	else:                                                                                                                                                                                                        
 		print("❓ Unknown command: ", text)
 
 func get_player_position() -> Vector3:

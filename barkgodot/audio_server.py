@@ -44,10 +44,10 @@ class AudioHandler(BaseHTTPRequestHandler):
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
                 temp_filename = tmp.name
             
-            # Record using the working command
+            # Record using the working command, specifically targeting the 'pulse' device
             cmd = [
                 '/bin/bash', '-c',
-                f'PATH=/usr/bin:/bin:$PATH; /usr/bin/arecord -D plughw:0,0 -f S16_LE -c 1 -r 16000 -d {duration} {temp_filename}'
+                f'PATH=/usr/bin:/bin:$PATH; /usr/bin/arecord -D pulse -f S16_LE -c 1 -r 16000 -d {duration} {temp_filename}'
             ]
             
             print(f"🎤 Recording for {duration} seconds...")
